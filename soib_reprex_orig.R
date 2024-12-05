@@ -52,21 +52,25 @@ predint_mean <- model_predint$fit
 predint_se <- model_predint$fit - model_predint$lwr
 # tictoc::toc()
 
-model_predfit = predict(model, newdata = data_to_pred,
-                        se.fit = TRUE)
+## BUG in predict.merMod(..., se.fit = TRUE, newdata = ...)
+if (FALSE) {
+    model_predfit = predict(model, newdata = data_to_pred,
+                            se.fit = TRUE)
 
 
-levs <- c((1-clev)/2, (1+clev)/2)
-qq <- qnorm(levs)
-model_predmat = with(model_predfit,
-                     data.frame(fit = fit,
-                                lwr = fit + qq[1]*se.fit,
-                                upr = fit + qq[2]*se.fit))
+    levs <- c((1-clev)/2, (1+clev)/2)
+    qq <- qnorm(levs)
+    model_predmat = with(model_predfit,
+                         data.frame(fit = fit,
+                                    lwr = fit + qq[1]*se.fit,
+                                    upr = fit + qq[2]*se.fit))
+}
 
 # print comparisons
 paste("Means: bootMer =", bootmer_mean, ", predictInterval =", predint_mean[1])
 paste("SEs: bootMer =", bootmer_se, ", predictInterval =", predint_se[1])
 
-save(list = c("pred_bootMer", "model_predint", "model_predmat",
+save(list = c("pred_bootMer", "model_predint",
+              ## "model_predmat",
               "predint_mean", "bootmer_mean", "predint_se", "bootmer_se"),
      file = "soib_reprex_orig.rda")
