@@ -1,0 +1,13 @@
+---
+title: soib summary
+---
+
+```{r load_dat}
+L <- load("soib_reprex_orig.rda")
+```
+
+```{r compare}
+ord <- order(model_predint$fit)
+matplot(t(pred_bootMer$t)[ord,], type = "p", col = 1, pch = 1)
+matlines(model_predint[ord,], type = "l", col = 2, lty = c(1,2,2))
+```

@@ -6,3 +6,7 @@
 \.#*
 *.Rout
 Rplots.pdf
+*~
+*.Rlog
+*.wrapR.*
+makestuff/
