@@ -22,7 +22,8 @@ Some things to try:
 Here are the results from the original example: this samples 100,000 values from the full data set, fits the model (a binomial GLMM with a cloglog link) and compares the prediction intervals for 60 cases (every month and time group) between `predictInterval` and `bootMer` with 100 sims (I bumped this up a little from the original).
 
 ```{r load_dat}
-L <- load("soib_reprex_orig.rda")
+library(shellpipes)
+loadEnvironments()
 ```
 
 ```{r compare}
