@@ -9,7 +9,6 @@ Debugging major discordance in uncertainty estimates using predictInterval()
     * bad computation of vcov? (RX vs Hessian)
 	* failure of Wald approx?
 	* conditioning on estimates of theta?
-
-### to do
-
-* 
+* `soib_summary.{rmd,html}: summary of the problem
+* `soib_reprex_orig.R`: original (slightly modified) example
+*
