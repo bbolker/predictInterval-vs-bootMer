@@ -2,12 +2,43 @@
 title: soib summary
 ---
 
+The goal here is to understand why `bootMer` and `merTools::predictInterval` are giving substantially different answers for the standard errors of predictions. Briefly (see below), `predictInterval` samples from the (sampling) covariance matrix of the fixed effects ($\Sigma(\hat \beta)$) and the ([approximate] conditional covariance matrices of the random effects ($\Sigma(\tilde b)$). Possible differences between `bootMer` and `predictInterval` include:
+
+* bad estimation of the $\beta$ covariance matrix (see e.g. GitHub issues about the `use.hessian` argument of `vcov()` ...). **Test**: compare `vcov(.,use.hessian=TRUE)`, `vcov(.,use.hessian=FALSE)`, and the covariance matrix of $\beta$ values returned from `bootMer`
+* departure from multivariate normality of $\Sigma(\hat \beta)$? (see above)
+* conditioning on $\hat \theta$ (estimated random effect covariance parameters): use `bootMer` output to investigate the correlations between $\hat \theta$ and the uncertainties of $\{\tilde b, \hat \beta\}$? (This conditioning will only matter if the uncertainty in $\hat \theta$ is large *and* correlated with the things that directly determine uncertainty in the predictions ...)
+* considering `use.u = TRUE` and `use.u = FALSE` (i.e. when bootstrapping, do we condition on $\tilde b$ or simulate from the unconditional distribution based on $\hat \theta$?) (I think that `use.u = FALSE` in `bootMer` corresponds to `re.form = NA` in `predictInterval` ...)
+* are there issues surrounding `re.form = NA`, i.e. population-level prediction?
+* does `predictInterval` really give *confidence intervals* and not *prediction intervals*? (I think so: the `include.resid.var` argument, which is TRUE by default, suggests that we can get prediction intervals for LMMs if we want, but we have a GLMM and there doesn't seem to be a corresponding argument for GLMMs - in any case it would be weird with a binary response ...)
+* in the example we're using `which = "fixed"`, which should (?????) be equivalent to *ignoring* RE variation ...
+
+Some things to try:
+
+* compare `bootMer` vs `predictInterval` for a variety of cases - how good is it in the best-case scenario, when does it go bad? (i.e. LMM; binomial GLMM; binomial GLMM with cloglog link ...) With/without `use.u`, `re.form = NA`, etc. ...
+* compare with values based on `predict.merMod(., se.fit = TRUE)` (need to fix bug associated with using `newdata` here, although can work around it by predicting everything for small data sets)
+* compare with values from `glmmTMB` with `predict(., se.fit = TRUE)`; this does use a Wald approximation, but doesn't condition on $\hat \theta$ ...
+* compare with the simpler `sqrt(diag(X %*% V %*% t(X)))` computation, which should (?) be equivalent to `which = "fixed"` ... ? (This is easy enough to do by hand with `X <- model.matrix(.)`, `V <- vcov(.)`, but may also be encoded in some package somewhere.  Doing it by hand might be more transparent?)
+
+Here are the results from the original example: this samples 100,000 values from the full data set, fits the model (a binomial GLMM with a cloglog link) and compares the prediction intervals for 60 cases (every month and time group) between `predictInterval` and `bootMer` with 100 sims (I bumped this up a little from the original).
+
 ```{r load_dat}
 L <- load("soib_reprex_orig.rda")
 ```
 
 ```{r compare}
+clev <- 0.48
+levs <- c((1-clev)/2, 0.5, (1+clev)/2)
 ord <- order(model_predint$fit)
-matplot(t(pred_bootMer$t)[ord,], type = "p", col = 1, pch = 1)
+par(las = 1, bty = "l")
+matplot(t(pred_bootMer$t)[ord,], type = "p",
+        col = adjustcolor("black", alpha.f = 0.3),
+        pch = 1,
+        xlab = "rank", ylab = "predicted")
+boot_predint <- t(apply(pred_bootMer$t, 2, quantile, levs))
 matlines(model_predint[ord,], type = "l", col = 2, lty = c(1,2,2))
+matlines(boot_predint[ord,], type = "l", col = 4, lty = c(1,2,2))
 ```
+
+From `?merTools::predictInterval`:
+
+> To generate a prediction interval, the function first computes a simulated distribution of all of the parameters in the model. For the random, or grouping, effects, this is done by sampling from a multivariate normal distribution which is defined by the BLUP estimate provided by ‘ranef’ and the associated variance-covariance matrix for each observed level of each grouping terms. For each grouping term, an array is build that has as many rows as there are levels of the grouping factor, as many columns as there are predictors at that level (e.g. an intercept and slope), and is stacked as high as there are number of simulations. These arrays are then multiplied by the new data provided to the function to produce a matrix of yhat values. The result is a matrix of the simulated values of the linear predictor for each observation for each simulation. Each grouping term has such a matrix for each observation. These values can be added to get the estimate of the fitted value for the random effect terms, and this can then be added to a matrix of simulated values for the fixed effect level to come up with ‘n.sims’ number of possible yhat values for each observation. 

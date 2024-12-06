@@ -9,4 +9,7 @@ Debugging major discordance in uncertainty estimates using predictInterval()
     * bad computation of vcov? (RX vs Hessian)
 	* failure of Wald approx?
 	* conditioning on estimates of theta?
-	
+
+### to do
+
+* 

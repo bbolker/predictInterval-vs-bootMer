@@ -1,7 +1,8 @@
-soib_reprex_orig.Rout: soib_reprex_orig.R
-
 soib_summary.html: soib_reprex_orig.rda soib_summary.rmd
 	Rscript --vanilla -e "rmarkdown::render('soib_summary.rmd')"
+
+soib_reprex_orig.Rout: soib_reprex_orig.R
+
 
 ### makestuff boilerplate
 Sources += Makefile
@@ -19,7 +20,7 @@ makestuff:
 
 -include makestuff/os.mk
 
-## -include makestuff/pipeR.mk
+-include makestuff/pipeR.mk
 
 -include makestuff/git.mk
 -include makestuff/visual.mk
