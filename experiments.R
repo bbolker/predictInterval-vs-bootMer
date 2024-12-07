@@ -7,6 +7,8 @@ library(ggplot2); theme_set(theme_bw())
 par_cores <- 8L
 options("glmmTMB.cores" = par_cores, "glmmTMB.autopar" = FALSE)
 
+source("funs.R")
+
 ## redo SOIB example, but with fewer samples, and with a more
 ##  thorough 
 load("reprex_pred_lwdu.RData")
@@ -24,6 +26,16 @@ t_lme4 <- system.time(
                    nAGQ = 0, control = glmerControl(optimizer = "bobyqa"))
 )
 
+data_to_pred <- data_lwdu |>
+  distinct(month, timegroups) |>
+  mutate(no.sp = 15,
+         gridg1 = data_lwdu$gridg1[1], 
+         gridg3 = data_lwdu$gridg3[1]) |>
+    as.data.frame()  ## avoid predictInterval warning
+
+
+ci_lme4 <- compare_intervals(model_lme4, verbose = TRUE, newdata = data_to_pred)
+
 ## convert glmer call to glmmTMB (eliminate unused/unneeded args)
 ##  (consider profile = TRUE to match nAGQ=0 ?)
 cc <- getCall(model)
@@ -39,12 +51,6 @@ t_glmmTMB.prof <- system.time(
                                  control = glmmTMBControl(profile = TRUE))
 )
 
-data_to_pred <- data_lwdu |>
-  distinct(month, timegroups) |>
-  mutate(no.sp = 15,
-         gridg1 = data_lwdu$gridg1[1], 
-         gridg3 = data_lwdu$gridg3[1]) |>
-    as.data.frame()  ## avoid predictInterval warning
 
 pred_fun <- function(input_model, ret_val = c("vector", "list"))  {
     ret_val <- match.arg(ret_val)
