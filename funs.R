@@ -36,17 +36,10 @@ compare_intervals <- function(model,
         bb <- bootMer(model, nsim = nboot, FUN = predict,
                       seed = 1000, use.u = FALSE, type = "parametric",
                       parallel = "yes", ncpus = par_cores)
-        res$bootMer <- apply(bb$t, 2, \(x) quantile(x, levs)) |>
+        res$bootMer <- apply(bb$t, 1, \(x) quantile(x, levs)) |>
             t() |>
             as.data.frame() |>
             setNames(c("lwr", "upr"))
-    }
-    if ("bootMer.useu" %in% methods) {
-        if (verbose) cat("bootMer.useu\n")
-        bb2 <- bootMer(model, nsim = nboot, FUN = predict,
-                       seed = 1000, use.u = TRUE, type = "parametric",
-                       parallel = "yes", ncpus = par_cores)
-        res$bootMer.useu <- apply(bb2$t, 2, \(x) quantile(x, levs))
     }
     if ("predict.se" %in% methods) {
         if (verbose) cat("predict.se\n")
@@ -63,6 +56,13 @@ plot_intervals <- function(res) {
     require(purrr)
     require(tidyr)
     require(dplyr)
-    bind_rows(res, .id = "method")
+    
+    rr <- bind_rows(res, .id = "method") |>
+        group_by(method) |>
+        mutate(rank = seq_len(n()))
+    ggplot(rr, aes(rank)) +
+        geom_ribbon(aes(ymin = lwr, ymax = upr, fill = method),
+                    alpha = 0.5)
+
 
 }
