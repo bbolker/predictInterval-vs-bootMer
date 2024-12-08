@@ -14,7 +14,7 @@ compare_intervals <- function(model,
     qq <- qnorm(levs)
     res <- list()
     p <- predict(model, newdata = newdata, re.form = NA)
-    newdata <- newdata[order(p),]
+    newdata <- newdata[order(p),,drop = FALSE]
     p <- sort(p)
     if ("predictInterval.fixed" %in% methods) {
         if (verbose) cat("predictInterval.fixed\n")
@@ -29,14 +29,15 @@ compare_intervals <- function(model,
         ## fixme:: $cond for glmmTMB
         V <- vcov(model)
         se <- sqrt(diag(X %*% V %*% t(X)))
-        res$XVXt <- data.frame(lwr = p - qq[1]*se, upr = p + qq[2]*se)
+        res$XVXt <- data.frame(lwr = p + qq[1]*se, upr = p + qq[2]*se)
     }
     if ("bootMer" %in% methods) {
         if (verbose) cat("bootMer\n")
-        bb <- bootMer(model, nsim = nboot, FUN = predict,
+        bb <- bootMer(model, nsim = nboot,
+                      FUN = \(x) predict(x, newdata = newdata, re.form = NA),
                       seed = 1000, use.u = FALSE, type = "parametric",
                       parallel = "yes", ncpus = par_cores)
-        res$bootMer <- apply(bb$t, 1, \(x) quantile(x, levs)) |>
+        res$bootMer <- apply(bb$t, 2, \(x) quantile(x, levs)) |>
             t() |>
             as.data.frame() |>
             setNames(c("lwr", "upr"))

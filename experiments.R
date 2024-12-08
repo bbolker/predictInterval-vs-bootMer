@@ -35,6 +35,12 @@ data_to_pred <- data_lwdu |>
 
 
 ci_lme4 <- compare_intervals(model_lme4, verbose = TRUE, newdata = data_to_pred)
+plot_intervals(ci_lme4) + facet_wrap(~method)
+
+
+ss <- lmer(Reaction ~ Days + (Days | Subject),
+            data = sleepstudy)
+
 
 ## convert glmer call to glmmTMB (eliminate unused/unneeded args)
 ##  (consider profile = TRUE to match nAGQ=0 ?)
