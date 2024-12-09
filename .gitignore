@@ -11,3 +11,5 @@ Rplots.pdf
 *.wrapR.*
 makestuff/
 \.soib*
+*.Rout.args
+

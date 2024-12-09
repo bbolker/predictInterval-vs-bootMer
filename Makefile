@@ -1,8 +1,5 @@
-soib_summary.html: soib_reprex_orig.rda soib_summary.rmd
+soib_summary.html: soib_reprex_orig.Rout soib_summary.rmd experiments.Rout funs.Rout
 	Rscript --vanilla -e "rmarkdown::render('soib_summary.rmd')"
-
-soib_reprex_orig.Rout: soib_reprex_orig.R
-
 
 ### makestuff boilerplate
 Sources += Makefile
@@ -17,6 +14,9 @@ makestuff/%.stamp: | makestuff
 	touch $@
 makestuff:
 	git clone --depth 1 $(msrepo)/makestuff
+
+autopipeR = TRUE
+autoknit = defined
 
 -include makestuff/os.mk
 

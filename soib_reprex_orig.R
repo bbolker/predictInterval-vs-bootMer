@@ -11,8 +11,9 @@ set.seed(101)
 data_lwdu <- slice_sample(data_lwdu, n = 100000) 
 
 
-# model
-model <- glmer("OBSERVATION.COUNT ~ month + month:log(no.sp) + timegroups + (1|gridg3/gridg1)", 
+## model
+## BMB: removed quotation marks around formula: could that possibly matter?
+model <- glmer(OBSERVATION.COUNT ~ month + month:log(no.sp) + timegroups + (1|gridg3/gridg1), 
                data = data_lwdu, family = binomial(link = 'cloglog'), 
                nAGQ = 0, control = glmerControl(optimizer = "bobyqa"))
 

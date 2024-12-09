@@ -21,7 +21,8 @@ compare_intervals <- function(model,
         res$predictInterval.fixed <-
             predictInterval(model, newdata = newdata,
                             type = "linear.prediction",
-                            which = "fixed", level = level)
+                            which = "fixed", level = level,
+                            include.resid.var = FALSE)
     }
     if ("XVXt" %in% methods) {
         if (verbose) cat("XVXt\n")
@@ -34,9 +35,10 @@ compare_intervals <- function(model,
     if ("bootMer" %in% methods) {
         if (verbose) cat("bootMer\n")
         bb <- bootMer(model, nsim = nboot,
-                      FUN = \(x) predict(x, newdata = newdata, re.form = NA),
+                      FUN = \(x) predict(x, newdata = newdata, re.form = NA,
+                                         allow.new.levels = TRUE),
                       seed = 1000, use.u = FALSE, type = "parametric",
-                      parallel = "yes", ncpus = par_cores)
+                      parallel = "multicore", ncpus = par_cores)
         res$bootMer <- apply(bb$t, 2, \(x) quantile(x, levs)) |>
             t() |>
             as.data.frame() |>
