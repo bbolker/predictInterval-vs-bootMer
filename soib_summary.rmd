@@ -32,10 +32,11 @@ Some things to try:
 * compare with values from `glmmTMB` with `predict(., se.fit = TRUE)`; this does use a Wald approximation, but doesn't condition on $\hat \theta$ ...
 * compare with the simpler `sqrt(diag(X %*% V %*% t(X)))` computation, which should (?) be equivalent to `which = "fixed"` ... ? (This is easy enough to do by hand with `X <- model.matrix(.)`, `V <- vcov(.)`, but may also be encoded in some package somewhere.  Doing it by hand might be more transparent?)
 
+**Conclusions so far**: a bias (difference between the predicted *mean* or median value between `bootMer` and the predicted values) seems to arise in some cases, possibly when there is a lot of uncertainty in the random effects covariance parameters $\hat \theta$? I guess there could be a Jensen's inequality thing going on here since the predicted values could be a nonlinear function of $\hat \theta$?
+
 Here are the results from the original example: this samples 100,000 values from the full data set, fits the model (a binomial GLMM with a cloglog link) and compares the prediction intervals for 60 cases (every month and time group) between `predictInterval` and `bootMer` with 100 sims (I bumped this up a little from the original).
 
 ```{r load_dat}
-L <- load("soib_reprex_orig.rda")  ## original example
 L2 <- load("predint_ci.rda")       ## results of various experiments
 load("model_lme4.rda")             ## model_lme4, data_to_pred
 source("funs.R")
@@ -63,54 +64,6 @@ plot_intervals(ci_lme4)
 
 Hmmm. The bias is similar, but harder to see 
 
-```{r check-levs}
-levs <- c(0.48, 0.8)
-names(levs) <- levs ## for map_dfr naming
-predfun <- function(level) {
-    merTools::predictInterval(model_lme4,
-                    newdata = data_to_pred,
-                    type = "linear.prediction",
-                    which = "fixed",
-                    level = level)
-}
-
-lev_cmp <- suppressWarnings(
-    purrr::map_dfr(levs, predfun,
-                   .id = "level")) |>
-    arrange(level, fit) |>
-    mutate(rank = seq(n()), .by = level)
-
-ggplot(lev_cmp) +
-    geom_ribbon(aes(x = rank, ymin = lwr, ymax = upr,  fill = level),
-                alpha = 0.3, colour = NA)
-```
-
-
-```{r check-incresvar}
-incres <- c(TRUE, FALSE)
-names(incres) <- as.character(incres) ## for map_dfr naming
-predfun2 <- function(ir) {
-    merTools::predictInterval(model_lme4,
-                    newdata = data_to_pred,
-                    type = "linear.prediction",
-                    which = "fixed",
-                    level = 0.8,
-                    include.resid.var = ir)
-}
-
-ir_cmp <- suppressWarnings(
-    purrr::map_dfr(incres, predfun2,
-                   .id = "incresvar")) |>
-    arrange(incresvar, fit) |>
-    mutate(rank = seq(n()), .by = incresvar)
-
-ggplot(ir_cmp) +
-    geom_ribbon(aes(x = rank, ymin = lwr, ymax = upr,  fill = incresvar),
-                alpha = 0.3, colour = NA)
-```
-
-Is this it????  Do I have to go back and re-run everything with `include.resid.var = TRUE` ?
-
 * intervals from a complex binomial fit (`Contraception` data set from `mlmRev` package, `use ~ livch*poly(age, 2) + (urban|district)`, logit link):
 
 ```{r compare-cc}
@@ -133,6 +86,37 @@ plot_intervals(ci_cc2)
 
 ```{r compare-cc3}
 plot_intervals(ci_cc3)
+```
+
+## include.res.var
+
+The documentation for `include.resid.var` is:
+
+> logical, include or exclude the residual variance for linear models
+
+but as far as I can see it seems to add *Gaussian* noise, with a standard deviation of 1 (!!) (see [here](https://github.com/jknowles/merTools/blob/main/R/merPredict.R#L436-L440)) when we have a binomial GLMM ... (reported [here](https://github.com/jknowles/merTools/issues/131)).
+
+```{r check-incresvar}
+incres <- c(TRUE, FALSE)
+names(incres) <- as.character(incres) ## for map_dfr naming
+predfun2 <- function(ir) {
+    merTools::predictInterval(model_lme4,
+                    newdata = data_to_pred,
+                    type = "linear.prediction",
+                    which = "fixed",
+                    level = 0.8,
+                    include.resid.var = ir)
+}
+
+ir_cmp <- suppressWarnings(
+    purrr::map_dfr(incres, predfun2,
+                   .id = "incresvar")) |>
+    arrange(incresvar, fit) |>
+    mutate(rank = seq(n()), .by = incresvar)
+
+ggplot(ir_cmp) +
+    geom_ribbon(aes(x = rank, ymin = lwr, ymax = upr,  fill = incresvar),
+                alpha = 0.3, colour = NA)
 ```
 
 

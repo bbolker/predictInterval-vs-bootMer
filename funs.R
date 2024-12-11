@@ -67,8 +67,8 @@ plot_intervals <- function(res) {
     gg0 <- ggplot(rr, aes(rank)) +
         geom_ribbon(aes(ymin = lwr, ymax = upr, fill = method),
                     alpha = 0.5)
-    if ("fit" %in% names(res)) {
-        gg0 <- gg0 + geom_line(y = fit, colour = method)
+    if ("fit" %in% names(rr)) {
+        gg0 <- gg0 + geom_line(aes(y = fit, colour = method))
     }
     return(gg0)
 }
