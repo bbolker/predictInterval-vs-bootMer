@@ -6,6 +6,8 @@ Ignore = target.mk
 
 ######################################################################
 
+## bolker.Rout: bolker.R
+
 autopipeR = defined
 autoknit = defined
 
