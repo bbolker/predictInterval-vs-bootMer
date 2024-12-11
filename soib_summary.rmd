@@ -41,47 +41,19 @@ load("model_lme4.rda")             ## model_lme4, data_to_pred
 source("funs.R")
 ```
 
-```{r compare}
-clev <- 0.48
-levs <- c((1-clev)/2, 0.5, (1+clev)/2)
-ord <- order(model_predint$fit)
-par(las = 1, bty = "l")
-matplot(t(pred_bootMer$t)[ord,], type = "p",
-        col = adjustcolor("black", alpha.f = 0.3),
-        pch = 1,
-        xlab = "rank", ylab = "predicted")
-boot_predint <- t(apply(pred_bootMer$t, 2, quantile, levs))
-matlines(model_predint[ord,], type = "l", col = 2, lty = c(1,2,2))
-matlines(boot_predint[ord,], type = "l", col = 4, lty = c(2,1,2), lwd = 2)
-```
-
-Comparing via some fancier machinery (see `experiments.R`/`funs.R`):
+Comparing with 'full' (`n=1e5`) data set:
 
 ```{r compare-lme4f, message = FALSE}
 plot_intervals(ci_lme4_f)
 ```
 
-`XVXt` (direct computation of confidence intervals via $\sqrt{\textrm{Diag}{\boldmath X} {\boldmath V} {\boldmath X}^\top}$) overlaps completely with `predictInterval.fixed`, as we can see by spreading things out with `facet_wrap`:
+`XVXt` (direct computation of confidence intervals via $\sqrt{\textrm{Diag}(\boldsymbol{X} \boldsymbol{V} \boldsymbol{X}^\top)}$) overlaps completely with `predictInterval.fixed`, as we can see by spreading things out with `facet_wrap`:
 
 ```{r compare-lme4f-facet, message = FALSE, fig.width = 10}
 plot_intervals(ci_lme4_f) + facet_wrap(~ method)
 ```
 
-* Why do these look so different from `soib_reprex_orig`, in particular the width of the `predictInterval` intervals? Here's how `model_predint` is built:
-
-```{r eval=FALSE}
-model_predint = predictInterval(model, newdata = data_to_pred, which = "fixed",
-                                level = clev, type = "linear.prediction")
-```
-The machinery in `funs.R` uses
-
-```{r eval = FALSE}
-predictInterval(model, newdata = newdata,
-                            type = "linear.prediction",
-                            which = "fixed", level = level,
-                            include.resid.var = FALSE)
-```
-(`include.resid.var = FALSE`???)
+Why is the bias there? (Previous issues were about the use of `include.resid.var`, which we'll skip over for now because (1) we actually we confidence rather than prediction intervals and (2) it seems as though (???) `predictInterval` does some bogus things with prediction intervals for GLMMs ...
 
 * intervals from original model (based on 1e4 samples, 100 bootstraps):
 
@@ -89,13 +61,7 @@ predictInterval(model, newdata = newdata,
 plot_intervals(ci_lme4)
 ```
 
-It's a little hard to see how these overlap, easier if we use `facet_wrap()` to spread out the methods:
-
-```{r compare-lme4-2, message = FALSE, fig.width = 10}
-plot_intervals(ci_lme4) + facet_wrap(~ method)
-```
-
-Hmmm. The bias is similar, but what about the width? Could `predictInterval` be ignoring the level specification for some reason?
+Hmmm. The bias is similar, but harder to see 
 
 ```{r check-levs}
 levs <- c(0.48, 0.8)

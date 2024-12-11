@@ -3,7 +3,7 @@ library(lme4)
 library(merTools)
 n_boot <- 100
 par_cores <- 8
-clev <- 0.48  ## why???
+clev <- 0.8  ## why???
 
 load("reprex_pred_lwdu.RData")
 ## subsetting the data, still reproduces issue
@@ -48,7 +48,8 @@ bootmer_se <- sd(na.omit(pred_bootMer$t[,1]))
 
 # tictoc::tic("predictInterval")
 model_predint = predictInterval(model, newdata = data_to_pred, which = "fixed",
-                                level = clev, type = "linear.prediction")
+                                level = clev, type = "linear.prediction",
+                                include.resid.var = FALSE)
 predint_mean <- model_predint$fit
 predint_se <- model_predint$fit - model_predint$lwr
 # tictoc::toc()

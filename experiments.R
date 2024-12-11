@@ -15,6 +15,7 @@ source("funs.R")
 ##  thorough 
 load("reprex_pred_lwdu.RData")
 
+## FULL version
 set.seed(101)
 data_lwdu_f <- slice_sample(data_lwdu, n = 1e5)
 t_lme4_f <- system.time(
@@ -46,8 +47,6 @@ t_lme4 <- system.time(
                    data = data_lwdu, family = binomial(link = 'cloglog'), 
                    nAGQ = 0, control = glmerControl(optimizer = "bobyqa"))
 )
-
-
 
 ci_lme4 <- compare_intervals(model_lme4, verbose = TRUE, newdata = data_to_pred)
 plot_intervals(ci_lme4) + facet_wrap(~method)

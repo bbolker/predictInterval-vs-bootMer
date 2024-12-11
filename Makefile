@@ -1,5 +1,7 @@
-soib_summary.html: soib_reprex_orig.Rout soib_summary.rmd experiments.Rout funs.Rout
+soib_summary.html: soib_summary.rmd experiments.Rout funs.Rout
 	Rscript --vanilla -e "rmarkdown::render('soib_summary.rmd')"
+
+experiments.Rout: experiments.R funs.R
 
 ### makestuff boilerplate
 Sources += Makefile

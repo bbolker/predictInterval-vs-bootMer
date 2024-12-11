@@ -18,11 +18,12 @@ compare_intervals <- function(model,
     p <- sort(p)
     if ("predictInterval.fixed" %in% methods) {
         if (verbose) cat("predictInterval.fixed\n")
-        res$predictInterval.fixed <-
-            predictInterval(model, newdata = newdata,
+        pi <- predictInterval(model, newdata = newdata,
                             type = "linear.prediction",
                             which = "fixed", level = level,
                             include.resid.var = FALSE)
+        ## reorder
+        res$predictInterval.fixed <- pi[c("fit", "lwr", "upr")]
     }
     if ("XVXt" %in% methods) {
         if (verbose) cat("XVXt\n")
@@ -30,7 +31,7 @@ compare_intervals <- function(model,
         ## fixme:: $cond for glmmTMB
         V <- vcov(model)
         se <- sqrt(diag(X %*% V %*% t(X)))
-        res$XVXt <- data.frame(lwr = p + qq[1]*se, upr = p + qq[2]*se)
+        res$XVXt <- data.frame(fit = p, lwr = p + qq[1]*se, upr = p + qq[2]*se)
     }
     if ("bootMer" %in% methods) {
         if (verbose) cat("bootMer\n")
@@ -39,10 +40,10 @@ compare_intervals <- function(model,
                                          allow.new.levels = TRUE),
                       seed = 1000, use.u = FALSE, type = "parametric",
                       parallel = "multicore", ncpus = par_cores)
-        res$bootMer <- apply(bb$t, 2, \(x) quantile(x, levs)) |>
+        res$bootMer <- apply(bb$t, 2, \(x) quantile(x, c(0.5, levs))) |>
             t() |>
             as.data.frame() |>
-            setNames(c("lwr", "upr"))
+            setNames(c("fit", "lwr", "upr"))
     }
     if ("predict.se" %in% methods) {
         if (verbose) cat("predict.se\n")
@@ -63,9 +64,11 @@ plot_intervals <- function(res) {
     rr <- bind_rows(res, .id = "method") |>
         group_by(method) |>
         mutate(rank = seq_len(n()))
-    ggplot(rr, aes(rank)) +
+    gg0 <- ggplot(rr, aes(rank)) +
         geom_ribbon(aes(ymin = lwr, ymax = upr, fill = method),
                     alpha = 0.5)
-
-
+    if ("fit" %in% names(res)) {
+        gg0 <- gg0 + geom_line(y = fit, colour = method)
+    }
+    return(gg0)
 }
