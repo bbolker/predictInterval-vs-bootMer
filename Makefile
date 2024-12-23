@@ -3,6 +3,8 @@ soib_summary.html: soib_summary.rmd experiments.Rout funs.Rout
 
 experiments.Rout: experiments.R funs.R
 
+experiments3.Rout: experiments3.R funs.R
+
 ### makestuff boilerplate
 Sources += Makefile
 

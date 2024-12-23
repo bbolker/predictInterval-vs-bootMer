@@ -16,7 +16,7 @@ source("funs.R")
 load("reprex_pred_lwdu.RData")
 set.seed(101) ## going to subsample data randomly ...
 n_sub <- 1e4
-n_boot <- 500
+n_boot <- 1000
 data_lwdu <- slice_sample(data_lwdu, n = n_sub)
 
 data_to_pred <- data_lwdu |>
@@ -40,7 +40,8 @@ pfun <- function(x, ret_val = c("vec", "list")) {
                   allow.new.levels = TRUE)
     th <- getME(x, "theta")
     bv <- getME(x, "beta")
-    res <- list(pred = pp, theta = th, beta = bv)
+    nll <- -1*c(logLik(x))
+    res <- list(pred = pp, theta = th, beta = bv, nll = nll)
     if (ret_val == "list") return(res)
     return(unlist(res))
 }
@@ -57,28 +58,35 @@ b0 <- pfun(model_lme4, ret_val = "list")
 
 relist(bb$t[1,], skel = b0)
 
-bb_res <- bb$t[bb$t[,"beta6"] > -5 &
-               bb$t[,"beta1"] > -15, ]
+## exclude some funky values: do it more systematically?
+## (doesn't look outliers are low-nll?
+bb_bad <- with(as.data.frame(bb$t),
+                             beta6 < (-5) | beta1 < (-10) |
+                             beta18 < (-10) | beta5 < (-5) |
+                             beta7 < (-10))
+bb_res <- bb$t[!bb_bad, ]
 
-nrow(bb$t) - nrow(bb_res)  ## excluded 16 cases
+sum(bb_bad)  ## 94/1000 cases
 
 b0_v <- pfun(model_lme4)
 
 
-plot_pairs <- function(inds = c(1:3, 61:84),
+plot_pairs <- function(data = bb_res,
+                       fit0 = b0_v,
+                       inds = c(1:3, 61:84),
                        pt.args = list(pch = ".", col = "gray"),
                        est.args = list(pch = 16, col = "red"),
                        med.args = list(pch = 17, col = "blue"),
                        mean.args = list(pch = 18, col = "purple"),
                        cex.sum = 2) {
-    pairs(bb_res[,inds], gap = 0,
+    pairs(data[,inds], gap = 0,
           panel = function(x, y, ...) {
               i <- parent.frame(2)$i
               j <- parent.frame(2)$j
               do.call(points,
                       c(list(x = x, y = y), list(...), pt.args))
               do.call(points,
-                      c(list(x = b0_v[inds[j]], y = b0_v[inds[i]],
+                      c(list(x = fit0[inds[j]], y = fit0[inds[i]],
                              cex = cex.sum), est.args))
               do.call(points,
                       c(list(x = mean(x), y = mean(y), cex = cex.sum),
@@ -89,8 +97,17 @@ plot_pairs <- function(inds = c(1:3, 61:84),
       })
 }
 
+png("ex3_1.png", width = 1200, height = 1200)
 plot_pairs(cex.sum=1)
+dev.off()
+
+
+hist(bb$t[,"nll"], breaks = 100, main ="", xlab = "nll")
+hist(bb$t[bb_bad,"nll"], breaks = 100, add = TRUE, col = "blue")
+
+png("ex3_2.png", width = 1200, height = 1200)
 plot_pairs(inds = c(1:3, 61:68))
+dev.off()
 
 ## can this all be explained by the bias in the bootstrap est of the
 ##  fixed effect intercept?
